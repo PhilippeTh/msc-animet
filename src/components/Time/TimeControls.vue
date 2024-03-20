@@ -138,6 +138,8 @@ export default {
         layerDateFormat: configs[0].layerDateFormat,
         layerDateIndex: 0,
         layerDefaultTime: new Date(layerData.Dimension.Dimension_time_default),
+        layerDimensionRefTime: layerData.Dimension.Dimension_ref_time,
+        layerDimensionTime: layerData.Dimension.Dimension_time,
         layerIndexOOB: false,
         layerModelRuns: referenceTime,
         layerCurrentMR:
@@ -170,7 +172,7 @@ export default {
           imageLayer.setVisible(false);
         }
       }
-      this.$root.$emit("timeLayerAdded");
+      this.$root.$emit("timeLayerAdded", imageLayer.get("layerName"));
       this.$mapCanvas.mapObj.addLayer(imageLayer);
     },
     async mapControls() {
@@ -280,7 +282,6 @@ export default {
           } else if (
             this.getMapTimeSettings.DateIndex < this.getDatetimeRangeSlider[0]
           ) {
-            this.$store.dispatch("Layers/setMapSnappedLayer", null);
             const first = this.getMapTimeSettings.DateIndex;
             let last =
               this.getDatetimeRangeSlider[1] -
@@ -293,11 +294,28 @@ export default {
           } else if (
             this.getMapTimeSettings.DateIndex > this.getDatetimeRangeSlider[1]
           ) {
-            this.$store.dispatch("Layers/setMapSnappedLayer", null);
             this.$store.commit("Layers/setDatetimeRangeSlider", [
               this.getDatetimeRangeSlider[0],
               this.getMapTimeSettings.DateIndex,
             ]);
+          } else {
+            const firstDate = oldExtent[this.getDatetimeRangeSlider[0]];
+            let first = this.findLayerIndex(firstDate, newExtent, newStep);
+            first = first >= 0 ? first : 0;
+            let last;
+            if (this.getDatetimeRangeSlider[1] === oldExtent.length - 1) {
+              last = newExtent.length - 1;
+            } else {
+              last =
+                this.getDatetimeRangeSlider[1] -
+                this.getDatetimeRangeSlider[0] +
+                first;
+              last =
+                last <= newExtent.length - 1 && last > first
+                  ? last
+                  : newExtent.length - 1;
+            }
+            this.$store.commit("Layers/setDatetimeRangeSlider", [first, last]);
           }
         } else {
           this.onSnappedLayerChanged(this.getMapTimeSettings.SnappedLayer);

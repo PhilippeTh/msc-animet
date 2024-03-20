@@ -68,11 +68,19 @@ export default {
     this.$root.$on("notifyWrongFormat", () => {
       this.notifyWrongFormat = true;
     });
+    this.$root.$on("refreshExpired", (layerList) => {
+      layerList.forEach((imageLayer) => {
+        this.errorLayersList.push(imageLayer.get("layerName"));
+        this.refreshExpired(imageLayer);
+      });
+      if (!this.isAnimating) this.fixTimeExtent();
+    });
   },
   beforeDestroy() {
     this.$root.$off("checkLoadingErrors", this.checkExpiredOnMapMoveOrResize);
     this.$root.$off("fixTimeExtent", this.fixTimeExtent);
     this.$root.$off("loadingError", this.errorDispatcher);
+    this.$root.$off("refreshExpired", this.refreshExpired);
   },
   data() {
     return {
@@ -351,7 +359,11 @@ export default {
             ),
           });
         }
-      } else if (newLayerIndex >= 0 && sameMR) {
+      } else if (
+        newLayerIndex >= 0 &&
+        sameMR &&
+        layer.get("layerDimensionTime") === layerData.Dimension.Dimension_time
+      ) {
         // If you find the time that failed again inside the time list,
         // it means the getCapa is wrong. Manually remove the faulty
         // timesteps until the index is no longer found.
@@ -368,6 +380,8 @@ export default {
         layerDateArray: configs[layerActiveConfig].layerDateArray,
         layerDateIndex: newLayerIndex,
         layerDefaultTime: new Date(layerData.Dimension.Dimension_time_default),
+        layerDimensionRefTime: layerData.Dimension.Dimension_ref_time,
+        layerDimensionTime: layerData.Dimension.Dimension_time,
         layerModelRuns: newMRs,
         layerCurrentMR: sameMR
           ? layer.get("layerCurrentMR")
