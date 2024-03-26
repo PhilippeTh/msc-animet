@@ -62,17 +62,25 @@ export default {
     this.$root.$on("cancelAnimationResize", () => {
       this.notifyCancelAnimateResize = true;
     });
-    this.$root.$on("checkLoadingErrors", this.checkExpiredOnMapMoveOrResize);
-    this.$root.$on("fixTimeExtent", this.fixTimeExtent);
+    // this.$root.$on("checkLoadingErrors", this.checkExpiredOnMapMoveOrResize);
     this.$root.$on("loadingError", this.errorDispatcher);
     this.$root.$on("notifyWrongFormat", () => {
       this.notifyWrongFormat = true;
     });
+    this.$root.$on("refreshExpired", (layerList) => {
+      layerList.forEach((imageLayer) => {
+        this.errorLayersList.push(imageLayer.get("layerName"));
+      });
+      layerList.forEach((imageLayer) => {
+        this.refreshExpired(imageLayer);
+      });
+      // if (!this.isAnimating) this.fixTimeExtent();
+    });
   },
   beforeDestroy() {
-    this.$root.$off("checkLoadingErrors", this.checkExpiredOnMapMoveOrResize);
-    this.$root.$off("fixTimeExtent", this.fixTimeExtent);
+    // this.$root.$off("checkLoadingErrors", this.checkExpiredOnMapMoveOrResize);
     this.$root.$off("loadingError", this.errorDispatcher);
+    this.$root.$off("refreshExpired", this.refreshExpired);
   },
   data() {
     return {
@@ -95,11 +103,11 @@ export default {
     };
   },
   methods: {
-    async checkExpiredOnMapMoveOrResize() {
-      if (this.expiredTimestepList.length !== 0) {
-        this.fixTimeExtent();
-      }
-    },
+    // async checkExpiredOnMapMoveOrResize() {
+    //   if (this.expiredTimestepList.length !== 0) {
+    //     this.fixTimeExtent();
+    //   }
+    // },
     clearAllTimeouts() {
       for (var layerName in this.timeoutHandles) {
         clearTimeout(this.timeoutHandles[layerName]["timeoutId"]);
@@ -312,15 +320,6 @@ export default {
           }
         );
       });
-      const layerActiveConfig = layer.get("layerActiveConfig");
-      let configs = this.createTimeLayerConfigs(
-        layerData.Dimension.Dimension_time
-      );
-      let newLayerIndex = this.findLayerIndex(
-        this.getMapTimeSettings.Extent[this.getMapTimeSettings.DateIndex],
-        configs[layerActiveConfig].layerDateArray,
-        configs[layerActiveConfig].layerTimeStep
-      );
       let newMRs =
         layerData.Dimension.Dimension_ref_time === ""
           ? null
@@ -336,12 +335,26 @@ export default {
           }
         }
       }
+      const layerActiveConfig = layer.get("layerActiveConfig");
+      let configs;
+      if (
+        layer.getSource().getParams().DIM_REFERENCE_TIME === undefined ||
+        !sameMR
+      ) {
+        configs = this.createTimeLayerConfigs(
+          layerData.Dimension.Dimension_time
+        );
+      } else {
+        configs = layer.get("layerConfigs");
+      }
+      let newLayerIndex = this.findLayerIndex(
+        this.getMapTimeSettings.Extent[this.getMapTimeSettings.DateIndex],
+        configs[layerActiveConfig].layerDateArray,
+        configs[layerActiveConfig].layerTimeStep
+      );
       if (!sameMR) {
         layer.getSource().updateParams({
-          DIM_REFERENCE_TIME: this.getProperDateString(
-            newMRs[newMRs.length - 1],
-            layer.get("layerDateFormat")
-          ),
+          DIM_REFERENCE_TIME: undefined,
         });
         if (newLayerIndex < 0) {
           layer.getSource().updateParams({
@@ -351,7 +364,11 @@ export default {
             ),
           });
         }
-      } else if (newLayerIndex >= 0 && sameMR) {
+      } else if (
+        newLayerIndex >= 0 &&
+        sameMR &&
+        layer.get("layerDimensionTime") === layerData.Dimension.Dimension_time
+      ) {
         // If you find the time that failed again inside the time list,
         // it means the getCapa is wrong. Manually remove the faulty
         // timesteps until the index is no longer found.
@@ -364,14 +381,25 @@ export default {
           );
         } while (newLayerIndex >= 0);
       }
+      let layerMR;
+      if (
+        (layer.getSource().getParams().DIM_REFERENCE_TIME === undefined ||
+          !sameMR) &&
+        currentMR !== null
+      ) {
+        layerMR = newMRs[newMRs.length - 1];
+      } else {
+        layerMR = layer.get("layerCurrentMR");
+      }
       layer.setProperties({
+        layerConfigs: configs,
         layerDateArray: configs[layerActiveConfig].layerDateArray,
         layerDateIndex: newLayerIndex,
         layerDefaultTime: new Date(layerData.Dimension.Dimension_time_default),
+        layerDimensionRefTime: layerData.Dimension.Dimension_ref_time,
+        layerDimensionTime: layerData.Dimension.Dimension_time,
         layerModelRuns: newMRs,
-        layerCurrentMR: sameMR
-          ? layer.get("layerCurrentMR")
-          : newMRs[newMRs.length - 1],
+        layerCurrentMR: layerMR,
         layerStartTime: new Date(configs[layerActiveConfig].layerStartTime),
         layerEndTime: new Date(configs[layerActiveConfig].layerEndTime),
         layerTimeStep: configs[layerActiveConfig].layerTimeStep,
@@ -383,6 +411,11 @@ export default {
     },
   },
   watch: {
+    errorListEmptied(newState, oldState) {
+      if (newState && !oldState) {
+        this.fixTimeExtent();
+      }
+    },
     playState(newState, oldState) {
       if (newState !== "play" && oldState === "play") {
         this.clearAllTimeouts();
@@ -392,6 +425,9 @@ export default {
   computed: {
     ...mapGetters("Layers", ["getDatetimeRangeSlider", "getMapTimeSettings"]),
     ...mapState("Layers", ["isAnimating", "isLooping", "playState"]),
+    errorListEmptied() {
+      return this.errorLayersList.length === 0;
+    },
   },
 };
 </script>

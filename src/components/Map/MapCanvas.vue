@@ -30,6 +30,7 @@
       "
       >{{ `${$t("MSCAnimet")} ${version}` }}</span
     >
+    <auto-refresh />
   </div>
 </template>
 
@@ -53,6 +54,7 @@ import { mapGetters, mapState } from "vuex";
 
 import AnimationCanvas from "../Animation/AnimationCanvas.vue";
 import AnimationRectangle from "../Animation/AnimationRectangle.vue";
+import AutoRefresh from "../Time/AutoRefresh.vue";
 import CustomOLControls from "./CustomOLControls.vue";
 import GetFeatureInfo from "./GetFeatureInfo.vue";
 import GlobalConfigs from "./GlobalConfigs.vue";
@@ -65,6 +67,7 @@ export default {
   components: {
     AnimationCanvas,
     AnimationRectangle,
+    AutoRefresh,
     CustomOLControls,
     GetFeatureInfo,
     GlobalConfigs,
@@ -193,7 +196,7 @@ export default {
       const rotation = view.getRotation();
       this.$store.dispatch("Layers/setExtent", [extent, rotation]);
       this.$root.$emit("updatePermalink");
-      this.resizeRefreshExpired();
+      // this.resizeRefreshExpired();
     });
 
     this.$mapCanvas.mapObj.on("singleclick", (evt) => {
@@ -217,12 +220,12 @@ export default {
     window.removeEventListener("keydown", this.removeLegend);
   },
   methods: {
-    async resizeRefreshExpired() {
-      await new Promise((resolve) =>
-        this.$mapCanvas.mapObj.once("rendercomplete", resolve)
-      );
-      this.$root.$emit("checkLoadingErrors");
-    },
+    // async resizeRefreshExpired() {
+    //   await new Promise((resolve) =>
+    //     this.$mapCanvas.mapObj.once("rendercomplete", resolve)
+    //   );
+    //   this.$root.$emit("checkLoadingErrors");
+    // },
     async goToExtentHandler(locExtent) {
       let rotation = 0;
       if (locExtent.length === 5) {
@@ -274,6 +277,7 @@ export default {
           this.selectedLegendLayerName
         );
         this.selectedLegendLayerName = null;
+        this.$root.$emit("updatePermalink");
       }
     },
     selectImage(layerName) {

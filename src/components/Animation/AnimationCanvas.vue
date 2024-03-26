@@ -288,9 +288,6 @@ export default {
       await new Promise((resolve) =>
         this.$animationCanvas.mapObj.once("rendercomplete", resolve)
       );
-      if (this.cancelExpired) {
-        this.$root.$emit("fixTimeExtent");
-      }
     },
     resetCounters() {
       this.loaded = 0;
