@@ -198,49 +198,45 @@ export default {
         }
         if (this.generating === true) {
           this.$store.dispatch("Layers/setMapTimeIndex", i);
+          this.animationController = new AbortController();
+          this.mapController = new AbortController();
+          let mapRendered = new Promise((resolve, reject) => {
+            const abortListener = ({ target }) => {
+              this.mapController.signal.removeEventListener(
+                "abort",
+                abortListener
+              );
+              reject(target.reason);
+            };
+            this.mapController.signal.addEventListener("abort", abortListener);
+
+            this.$mapCanvas.mapObj.once("rendercomplete", resolve);
+          }).catch(() => {
+            console.error("Animation creation cancelled");
+          });
+          let animationRendered = new Promise((resolve, reject) => {
+            const abortListener = ({ target }) => {
+              this.animationController.signal.removeEventListener(
+                "abort",
+                abortListener
+              );
+              reject(target.reason);
+            };
+            this.animationController.signal.addEventListener(
+              "abort",
+              abortListener
+            );
+
+            this.$animationCanvas.mapObj.once("rendercomplete", resolve);
+          }).catch(() => {
+            console.error("Animation creation cancelled");
+          });
           if (i === this.datetimeRangeSlider[0]) {
-            this.mapController = new AbortController();
-            this.animationController = new AbortController();
-            let mapRendered = new Promise((resolve, reject) => {
-              const abortListener = ({ target }) => {
-                this.mapController.signal.removeEventListener(
-                  "abort",
-                  abortListener
-                );
-                reject(target.reason);
-              };
-              this.mapController.signal.addEventListener(
-                "abort",
-                abortListener
-              );
-
-              this.$mapCanvas.mapObj.once("rendercomplete", resolve);
-            }).catch(() => {
-              console.error("Animation creation cancelled");
-            });
-            let animationRendered = new Promise((resolve, reject) => {
-              const abortListener = ({ target }) => {
-                this.animationController.signal.removeEventListener(
-                  "abort",
-                  abortListener
-                );
-                reject(target.reason);
-              };
-              this.animationController.signal.addEventListener(
-                "abort",
-                abortListener
-              );
-
-              this.$animationCanvas.mapObj.once("rendercomplete", resolve);
-            }).catch(() => {
-              console.error("Animation creation cancelled");
-            });
             await Promise.all([mapRendered, animationRendered]);
           } else {
             // For some reason the rendercomplete event seems to fire early
             // with the animation on 2 maps, so I'm waiting for layers to
             // throw the loadend event instead.
-            this.animationController = new AbortController();
             this.layersController = new AbortController();
             let layersRendered = new Promise((resolve, reject) => {
               const abortListener = ({ target }) => {
@@ -255,30 +251,13 @@ export default {
                 abortListener
               );
 
-              this.$root.$on("layersRendered", () => {
+              this.$root.$once("layersRendered", () => {
                 resolve();
               });
             }).catch(() => {
               console.error("Animation creation cancelled");
             });
-            let animationRendered = new Promise((resolve, reject) => {
-              const abortListener = ({ target }) => {
-                this.animationController.signal.removeEventListener(
-                  "abort",
-                  abortListener
-                );
-                reject(target.reason);
-              };
-              this.animationController.signal.addEventListener(
-                "abort",
-                abortListener
-              );
-
-              this.$animationCanvas.mapObj.once("rendercomplete", resolve);
-            }).catch(() => {
-              console.error("Animation creation cancelled");
-            });
-            await Promise.all([layersRendered, animationRendered]);
+            await Promise.all([layersRendered, mapRendered, animationRendered]);
           }
           if (this.cancelExpired) {
             this.cancelExpired = false;

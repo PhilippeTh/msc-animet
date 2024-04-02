@@ -93,21 +93,20 @@ export default {
   mixins: [datetimeManipulations],
   data() {
     return {
-      cancelExpired: false,
-      locked: false,
+      cancelCriticalError: false,
       screenWidth: window.innerWidth,
     };
   },
   mounted() {
     this.$root.$on("addTemporalLayer", this.layerTimeManager);
-    this.$root.$on("cancelExpired", this.handleCancelExpired);
+    this.$root.$on("cancelCriticalError", this.handleCriticalError);
     this.$root.$on("fixLayerTimes", this.mapControls);
     this.$root.$on("timeLayerRemoved", this.removedTimeLayerManager);
     window.addEventListener("resize", this.updateScreenSize);
   },
   beforeDestroy() {
     this.$root.$off("addTemporalLayer", this.layerTimeManager);
-    this.$root.$off("cancelExpired", this.handleCancelExpired);
+    this.$root.$off("cancelCriticalError", this.handleCriticalError);
     this.$root.$off("fixLayerTimes", this.mapControls);
     this.$root.$off("timeLayerRemoved", this.removedTimeLayerManager);
     window.removeEventListener("resize", this.updateScreenSize);
@@ -116,8 +115,8 @@ export default {
     delay(time) {
       return new Promise((resolve) => setTimeout(resolve, time));
     },
-    handleCancelExpired() {
-      this.cancelExpired = true;
+    handleCriticalError(isError) {
+      this.cancelCriticalError = isError;
     },
     layerTimeManager(imageLayer, layerData) {
       let referenceTime =
@@ -173,77 +172,74 @@ export default {
           imageLayer.setVisible(false);
         }
       }
+      this.setDateTime(
+        imageLayer,
+        this.getMapTimeSettings.Extent[this.getMapTimeSettings.DateIndex]
+      );
       this.$root.$emit("timeLayerAdded", imageLayer.get("layerName"));
       this.$mapCanvas.mapObj.addLayer(imageLayer);
     },
     async mapControls() {
-      if (!this.locked) {
-        this.locked = true;
-        // Prevents a bug that triggers play twice
-        let playStateBuffer = this.playState;
-        let cancelBuffer = this.cancelExpired;
+      // Prevents a bug that triggers play twice
+      let playStateBuffer = this.playState;
 
-        this.cancelExpired = false;
-        const driverDate =
-          this.getMapTimeSettings.Extent[this.getMapTimeSettings.DateIndex];
-        let visibleTLayers = this.$mapLayers.arr.filter((l) => {
-          return l.get("layerVisibilityOn") && l.get("layerIsTemporal");
-        });
-        let noChange = true;
-        for (let i = 0; i < visibleTLayers.length; i++) {
-          let dateArray = visibleTLayers[i].get("layerDateArray");
-          const layerDateIndex = this.findLayerIndex(
-            driverDate,
-            dateArray,
-            visibleTLayers[i].get("layerTimeStep")
-          );
-          visibleTLayers[i].setProperties({
-            layerDateIndex: layerDateIndex,
-          });
-          if (layerDateIndex >= 0) {
-            this.setDateTime(visibleTLayers[i], dateArray[layerDateIndex]);
-            noChange = false;
-            if (
-              visibleTLayers[i].get("layerVisibilityOn") &&
-              !visibleTLayers[i].get("visible")
-            ) {
-              visibleTLayers[i].setVisible(true);
-            }
-          } else if (visibleTLayers[i].get("visible")) {
-            visibleTLayers[i].setVisible(false);
-          }
-        }
-        if (noChange) {
-          this.$mapCanvas.mapObj.updateSize();
-          if (playStateBuffer === "play") {
-            // need this delay else it's too fast for the rest of the code
-            console.log("AHHHHHHHHHHHHHHHHHHHHHHH");
-            await this.delay(100);
-            this.$root.$emit("playAnimation");
-          } else if (this.isAnimating) {
-            // Trigger manually because animation creation waits for
-            // render events, but noChange means no layers are shown
-            // so nothing ever changes or renders.
-            this.$root.$emit("layersRendered");
-            this.$animationCanvas.mapObj.updateSize();
-          }
-          return;
-        }
-        // Count time it takes to finish render for play button,
-        // if less than 1sec wait until it's been a second
-        let r = await this.measurePromise(
-          () =>
-            new Promise((resolve) =>
-              this.$mapCanvas.mapObj.once("rendercomplete", resolve)
-            )
+      const driverDate =
+        this.getMapTimeSettings.Extent[this.getMapTimeSettings.DateIndex];
+      let visibleTLayers = this.$mapLayers.arr.filter((l) => {
+        return l.get("layerVisibilityOn") && l.get("layerIsTemporal");
+      });
+      let noChange = true;
+      for (let i = 0; i < visibleTLayers.length; i++) {
+        let dateArray = visibleTLayers[i].get("layerDateArray");
+        const layerDateIndex = this.findLayerIndex(
+          driverDate,
+          dateArray,
+          visibleTLayers[i].get("layerTimeStep")
         );
-        if (!this.cancelBuffer && playStateBuffer === "play") {
-          if (r < 1000) {
-            await this.delay(1000 - r);
+        visibleTLayers[i].setProperties({
+          layerDateIndex: layerDateIndex,
+        });
+        if (layerDateIndex >= 0) {
+          this.setDateTime(visibleTLayers[i], dateArray[layerDateIndex]);
+          noChange = false;
+          if (
+            visibleTLayers[i].get("layerVisibilityOn") &&
+            !visibleTLayers[i].get("visible")
+          ) {
+            visibleTLayers[i].setVisible(true);
           }
-          this.$root.$emit("playAnimation");
+        } else if (visibleTLayers[i].get("visible")) {
+          visibleTLayers[i].setVisible(false);
         }
-        this.locked = false;
+      }
+      if (noChange) {
+        this.$mapCanvas.mapObj.updateSize();
+        if (playStateBuffer === "play") {
+          // need this delay else it's too fast for the rest of the code
+          await this.delay(100);
+          this.$root.$emit("playAnimation");
+        } else if (this.isAnimating) {
+          // Trigger manually because animation creation waits for
+          // render events, but noChange means no layers are shown
+          // so nothing ever changes or renders.
+          this.$root.$emit("layersRendered");
+          this.$animationCanvas.mapObj.updateSize();
+        }
+        return;
+      }
+      // Count time it takes to finish render for play button,
+      // if less than 1sec wait until it's been a second
+      let r = await this.measurePromise(
+        () =>
+          new Promise((resolve) =>
+            this.$mapCanvas.mapObj.once("rendercomplete", resolve)
+          )
+      );
+      if (!this.cancelCriticalError && playStateBuffer === "play") {
+        if (r < 1000) {
+          await this.delay(1000 - r);
+        }
+        this.$root.$emit("playAnimation");
       }
     },
     measurePromise(fn) {

@@ -62,28 +62,29 @@ export default {
     this.$root.$on("cancelAnimationResize", () => {
       this.notifyCancelAnimateResize = true;
     });
-    // this.$root.$on("checkLoadingErrors", this.checkExpiredOnMapMoveOrResize);
     this.$root.$on("loadingError", this.errorDispatcher);
     this.$root.$on("notifyWrongFormat", () => {
       this.notifyWrongFormat = true;
     });
-    this.$root.$on("refreshExpired", (layerList) => {
-      layerList.forEach((imageLayer) => {
-        this.errorLayersList.push(imageLayer.get("layerName"));
-      });
-      layerList.forEach((imageLayer) => {
-        this.refreshExpired(imageLayer);
-      });
-      // if (!this.isAnimating) this.fixTimeExtent();
-    });
+    // this.$root.$on("refreshExpired", (layerList) => {
+    //   if (!this.blockRefresh) {
+    //     layerList.forEach((imageLayer) => {
+    //       this.errorLayersList.push(imageLayer.get("layerName"));
+    //     });
+    //     layerList.forEach((imageLayer) => {
+    //       this.refreshExpired(imageLayer);
+    //     });
+    //   }
+    // });
   },
   beforeDestroy() {
-    // this.$root.$off("checkLoadingErrors", this.checkExpiredOnMapMoveOrResize);
     this.$root.$off("loadingError", this.errorDispatcher);
     this.$root.$off("refreshExpired", this.refreshExpired);
   },
   data() {
     return {
+      test: 0,
+      blockRefresh: false,
       errorLayersList: [],
       expiredSnackBarMessage: this.$t("MissingTimesteps"),
       expiredTimestepList: [],
@@ -103,11 +104,6 @@ export default {
     };
   },
   methods: {
-    // async checkExpiredOnMapMoveOrResize() {
-    //   if (this.expiredTimestepList.length !== 0) {
-    //     this.fixTimeExtent();
-    //   }
-    // },
     clearAllTimeouts() {
       for (var layerName in this.timeoutHandles) {
         clearTimeout(this.timeoutHandles[layerName]["timeoutId"]);
@@ -116,15 +112,7 @@ export default {
         delete this.timeoutHandles[layerName];
       }
     },
-    async fixTimeExtent() {
-      await new Promise((resolve) => {
-        let checkInterval = setInterval(() => {
-          if (this.errorLayersList.length === 0) {
-            clearInterval(checkInterval);
-            resolve();
-          }
-        }, 100); // Check every 100ms
-      });
+    fixTimeExtent() {
       if (this.expiredTimestepList.length !== 0) {
         let noChangeFlag = true;
         if (this.expiredTimestepList.includes(this.getMapTimeSettings.Step)) {
@@ -188,15 +176,11 @@ export default {
         const serviceException =
           xmlDoc.getElementsByTagName("ogc:ServiceException")[0] ||
           xmlDoc.getElementsByTagName("ServiceException")[0];
-        // An error like 500 will trigger the catch
-        // undefined means there's actually no error
+        // An error like 500 will trigger the catch.
+        // "undefined" means there's actually no error.
+        // Call refresh just to update the values and continue.
         if (serviceException === undefined) {
-          this.errorLayersList.splice(
-            this.errorLayersList.indexOf(layer.get("layerName")),
-            1
-          );
-          this.$mapCanvas.mapObj.updateSize();
-          this.$root.$emit("loadingStop");
+          this.refreshExpired(layer);
           return;
         }
         const attrs = serviceException.attributes;
@@ -260,12 +244,16 @@ export default {
         }
       } catch (error) {
         if (this.playState === "play" && this.isLooping) {
+          this.$root.$emit("cancelCriticalError", true);
+          this.blockRefresh = true;
           const name = layer.get("layerName");
           const timeoutId = setTimeout(() => {
             clearTimeout(this.timeoutHandles[name]["timeoutId"]);
             delete this.timeoutHandles[name];
             this.errorDispatcher(layer, e);
-          }, 45000);
+            this.blockRefresh = false;
+            this.$root.$emit("cancelCriticalError", false);
+          }, 4500);
           if (name in this.timeoutHandles) {
             clearTimeout(this.timeoutHandles[name]["timeoutId"]);
             delete this.timeoutHandles[name];
@@ -364,22 +352,6 @@ export default {
             ),
           });
         }
-      } else if (
-        newLayerIndex >= 0 &&
-        sameMR &&
-        layer.get("layerDimensionTime") === layerData.Dimension.Dimension_time
-      ) {
-        // If you find the time that failed again inside the time list,
-        // it means the getCapa is wrong. Manually remove the faulty
-        // timesteps until the index is no longer found.
-        do {
-          configs[layerActiveConfig].layerDateArray.splice(newLayerIndex, 1);
-          newLayerIndex = this.findLayerIndex(
-            this.getMapTimeSettings.Extent[this.getMapTimeSettings.DateIndex],
-            configs[layerActiveConfig].layerDateArray,
-            configs[layerActiveConfig].layerTimeStep
-          );
-        } while (newLayerIndex >= 0);
       }
       let layerMR;
       if (

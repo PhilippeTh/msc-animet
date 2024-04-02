@@ -56,22 +56,21 @@ export default {
       let layerData;
       await Promise.all(
         this.layers.map(async (layerName) => {
-          const layer = this.$mapLayers.arr.find(
-            (l) => l.get("layerName") === layerName
-          );
-          const api = axios.create({
-            baseURL: layer.get("source")["url_"],
-            params: {
-              SERVICE: "WMS",
-              VERSION: "1.3.0",
-              REQUEST: "GetCapabilities",
-              LAYERS: layerName,
-              t: new Date().getTime(),
-            },
-          });
-          await api
-            .get()
-            .then((response) => {
+          try {
+            const layer = this.$mapLayers.arr.find(
+              (l) => l.get("layerName") === layerName
+            );
+            const api = axios.create({
+              baseURL: layer.get("source")["url_"],
+              params: {
+                SERVICE: "WMS",
+                VERSION: "1.3.0",
+                REQUEST: "GetCapabilities",
+                LAYERS: layerName,
+                t: new Date().getTime(),
+              },
+            });
+            await api.get().then((response) => {
               layerData = SaxonJS.XPath.evaluate(
                 this.xsltTime.replace("REPLACE_WITH_LAYERNAME", layerName),
                 null,
@@ -85,14 +84,14 @@ export default {
                   },
                 }
               );
-            })
-            .catch((error) => {
-              // pass, it'll be handled in the error manager
             });
-          layersInfo.push({
-            layer: layer,
-            layerData: layerData,
-          });
+            layersInfo.push({
+              layer: layer,
+              layerData: layerData,
+            });
+          } catch (error) {
+            // pass, it'll be handled in the error manager
+          }
         })
       );
       this.checkRefresh(layersInfo);

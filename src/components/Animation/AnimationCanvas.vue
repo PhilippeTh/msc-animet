@@ -23,9 +23,9 @@ import "ol/ol.css";
 export default {
   data() {
     return {
-      cancelExpired: false,
       copiedLayers: [],
       darkOSMCallback: null,
+      errorList: [],
       loaded: 0,
       loading: 0,
     };
@@ -33,17 +33,30 @@ export default {
   mixins: [datetimeManipulations],
   mounted() {
     this.$root.$on("animationCanvasReset", this.mapControls);
-    this.$root.$on("cancelExpired", this.handleCancelExpired);
-    this.$root.$on("redoAnimation", this.resetCounters);
     this.animationCanvasSetup();
   },
   beforeDestroy() {
     this.$root.$off("animationCanvasReset", this.mapControls);
-    this.$root.$off("cancelExpired", this.handleCancelExpired);
-    this.$root.$off("redoAnimation", this.resetCounters);
+    this.removeLayersListeners();
     this.$animationCanvas.mapObj = {};
   },
   methods: {
+    addLayersListeners() {
+      this.$mapCanvas.mapObj.getLayers().forEach((layer) => {
+        if (layer instanceof OLImage) {
+          const source = layer.getSource();
+          source.on("imageloadstart", this.handleLoading);
+          source.on(["imageloadend", "imageloaderror"], this.handleLoaded);
+        }
+      });
+      this.$animationCanvas.mapObj.getLayers().forEach((layer) => {
+        if (layer instanceof OLImage) {
+          const source = layer.getSource();
+          source.on("imageloadstart", this.handleLoading);
+          source.on(["imageloadend", "imageloaderror"], this.handleLoaded);
+        }
+      });
+    },
     addOverlays() {
       for (const [key, values] of Object.entries(this.getPossibleOverlays)) {
         if (values.isShown) {
@@ -130,29 +143,15 @@ export default {
       this.addOverlays();
       if (this.getMapTimeSettings.DateIndex === this.datetimeRangeSlider[0])
         this.mapControls();
-      this.$mapCanvas.mapObj.getLayers().forEach((layer) => {
-        if (layer instanceof OLImage) {
-          layer.getSource().on("imageloadstart", () => {
-            this.loading++;
+      this.$animationCanvas.mapObj.on("loadend", () => {
+        if (this.errorList.length !== 0) {
+          this.errorList.forEach((pair) => {
+            this.$root.$emit("loadingError", ...pair);
           });
-
-          layer.getSource().on("imageloadend", () => {
-            this.loaded++;
-          });
+          this.errorList = [];
         }
       });
-
-      this.$animationCanvas.mapObj.getLayers().forEach((layer) => {
-        if (layer instanceof OLImage) {
-          layer.getSource().on("imageloadstart", () => {
-            this.loading++;
-          });
-
-          layer.getSource().on("imageloadend", () => {
-            this.loaded++;
-          });
-        }
-      });
+      this.addLayersListeners();
       const previewRect = document.getElementById("animation-rect");
       const size = [previewRect.offsetWidth, previewRect.offsetHeight];
       const mapView = this.$mapCanvas.mapObj.getView();
@@ -238,19 +237,21 @@ export default {
             let layer = this.$mapLayers.arr.find(
               (l) => l.get("layerName") === newLayer.get("layerName")
             );
-            this.$root.$emit("loadingError", layer, e);
-            this.$root.$emit("loadingError", newLayer, e);
+            this.errorList.push([layer, e]);
+            this.errorList.push([newLayer, e]);
           });
           this.copiedLayers.push(newLayer);
           this.$animationCanvas.mapObj.addLayer(newLayer);
         }
       });
     },
-    handleCancelExpired() {
-      this.cancelExpired = true;
+    handleLoaded() {
+      this.loaded++;
+    },
+    handleLoading() {
+      this.loading++;
     },
     async mapControls() {
-      this.cancelExpired = false;
       const driverDate =
         this.getMapTimeSettings.Extent[this.getMapTimeSettings.DateIndex];
       let visibleTLayers = this.copiedLayers.filter((l) => {
@@ -283,15 +284,25 @@ export default {
       }
       if (noChange) {
         this.$animationCanvas.mapObj.updateSize();
+        this.$mapCanvas.mapObj.updateSize();
         return;
       }
-      await new Promise((resolve) =>
-        this.$animationCanvas.mapObj.once("rendercomplete", resolve)
-      );
     },
-    resetCounters() {
-      this.loaded = 0;
-      this.loading = 0;
+    removeLayersListeners() {
+      this.$mapCanvas.mapObj.getLayers().forEach((layer) => {
+        if (layer instanceof OLImage) {
+          const source = layer.getSource();
+          source.un("imageloadstart", this.handleLoading);
+          source.un(["imageloadend", "imageloaderror"], this.handleLoaded);
+        }
+      });
+      this.$animationCanvas.mapObj.getLayers().forEach((layer) => {
+        if (layer instanceof OLImage) {
+          const source = layer.getSource();
+          source.un("imageloadstart", this.handleLoading);
+          source.un(["imageloadend", "imageloaderror"], this.handleLoaded);
+        }
+      });
     },
     async setDateTime(layer, date) {
       layer.getSource().updateParams({
@@ -336,6 +347,7 @@ export default {
     },
     loaded() {
       if (this.loading === this.loaded) {
+        console.log(this.loading, this.loaded);
         this.$root.$emit("layersRendered");
       }
     },
