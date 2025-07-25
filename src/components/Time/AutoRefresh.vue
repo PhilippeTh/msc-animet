@@ -3,6 +3,7 @@
 <script>
 import axios from '../../utils/AxiosConfig.js'
 import OLImage from 'ol/layer/Image'
+import WebGLTileLayer from 'ol/layer/WebGLTile.js'
 
 export default {
   inject: ['store'],
@@ -43,7 +44,10 @@ export default {
         this.iterationCounter = 0
         if (this.isAnimating && this.playState !== 'play') return
         this.$mapLayers.arr.forEach((layer) => {
-          if (layer instanceof OLImage && !layer.get('layerIsTemporal')) {
+          if (
+            layer instanceof WebGLTileLayer &&
+            !layer.get('layerIsTemporal')
+          ) {
             layer.getSource().updateParams({
               t: new Date().getTime(),
             })

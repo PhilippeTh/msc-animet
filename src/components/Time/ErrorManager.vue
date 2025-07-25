@@ -181,6 +181,9 @@ export default {
     },
     async errorDispatcher(errorInfo) {
       const { layer, error: e } = errorInfo
+      if (this.errorLayersList.includes(layer.get('layerName'))) {
+        return
+      }
       this.blockRefreshError = true
       try {
         this.store.setPendingErrorResolution(true)

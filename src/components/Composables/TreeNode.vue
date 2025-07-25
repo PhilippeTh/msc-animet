@@ -50,6 +50,7 @@
 import { computed, inject, ref, watch } from 'vue'
 import { getCurrentInstance } from 'vue'
 import OLImage from 'ol/layer/Image'
+import WebGLTileLayer from 'ol/layer/WebGLTile.js'
 
 const { proxy } = getCurrentInstance()
 const store = inject('store')
@@ -102,7 +103,7 @@ const handleClick = (node) => {
 const presetSelected = (node) => {
   return node.children.every((childNode) =>
     proxy.$mapLayers.arr.some((layer) => {
-      if (layer instanceof OLImage) {
+      if (layer instanceof WebGLTileLayer) {
         let styleCheck = true
         if (childNode.currentStyle) {
           styleCheck = layer.get('layerCurrentStyle') === childNode.currentStyle
@@ -140,7 +141,7 @@ const handleMultiAdd = (node) => {
       const tempNode = {
         Name: layer.get('layerName'),
         isLeaf: true,
-        wmsSource: layer.getSource().getUrl(),
+        wmsSource: layer.getSource().getUrls()[0],
       }
       emit('request', tempNode)
     }

@@ -56,6 +56,7 @@
 import { isDarkTheme } from '@/components/Composables/isDarkTheme'
 import { useRouter, useRoute } from 'vue-router'
 import OLImage from 'ol/layer/Image'
+import WebGLTileLayer from 'ol/layer/WebGLTile.js'
 
 export default {
   inject: ['store'],
@@ -140,7 +141,7 @@ export default {
           const numLayers = this.$mapLayers.arr.length
           for (let i = 0; i < numLayers; i++) {
             let layer = this.$mapLayers.arr[i]
-            if (layer instanceof OLImage) {
+            if (layer instanceof WebGLTileLayer) {
               let layerName = layer.get('layerName')
               let layerOpacity = layer.get('opacity').toString()
               let isSnapped =

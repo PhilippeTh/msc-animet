@@ -72,6 +72,9 @@ import VectorLayer from 'ol/layer/Vector.js'
 import VectorSource from 'ol/source/Vector.js'
 import View from 'ol/View'
 
+import WebGLTileLayer from 'ol/layer/WebGLTile.js'
+import TileWMS from 'ol/source/TileWMS.js'
+
 import 'ol/ol.css'
 
 import datetimeManipulations from '../../mixins/datetimeManipulations'
@@ -438,9 +441,8 @@ export default {
     async buildLayer(eventData) {
       const { layerData, source: wmsSource, autoPlay, range } = eventData
       let imageLayer = null
-      imageLayer = new OLImage({
-        source: new ImageWMS({
-          format: 'image/png',
+      imageLayer = new WebGLTileLayer({
+        source: new TileWMS({
           url: wmsSource,
           params: { LAYERS: layerData.Name.split('/')[0] },
           transition: 0,
@@ -480,16 +482,16 @@ export default {
 
       this.setLayerZIndex(imageLayer)
 
-      imageLayer.getSource().on('imageloadstart', () => {
+      imageLayer.getSource().on('tileloadstart', () => {
         this.loading += 1
       })
-      imageLayer.getSource().on(['imageloadend', 'imageloaderror'], () => {
+      imageLayer.getSource().on(['tileloadend', 'tileloaderror'], () => {
         this.loading -= 1
       })
 
-      imageLayer.getSource().on('imageloaderror', (e) => {
+      imageLayer.getSource().on('tileloaderror', (e) => {
         if (this.isAnimating && this.playState !== 'play') return
-        const url = e.target.getUrl()
+        const url = e.target.getUrls()[0]
         const [key, values] = Object.entries(this.wmsSources).find(
           ([key, value]) => key !== 'Presets' && value.url === url,
         )
