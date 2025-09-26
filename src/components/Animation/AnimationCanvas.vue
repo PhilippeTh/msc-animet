@@ -25,6 +25,7 @@ import 'ol/ol.css'
 
 export default {
   inject: ['store'],
+  props: ['mapCanvas'],
   data() {
     return {
       copiedLayers: [],
@@ -45,7 +46,7 @@ export default {
   },
   methods: {
     addLayersListeners() {
-      this.$mapCanvas.mapObj.getLayers().forEach((layer) => {
+      this.mapCanvas.getLayers().forEach((layer) => {
         if (layer instanceof OLImage) {
           const source = layer.getSource()
           source.on('imageloadstart', this.incrementLoadingCount)
@@ -109,7 +110,7 @@ export default {
         controls: [],
         interactions: [],
       })
-      const isBasemapVisible = this.$mapCanvas.mapObj
+      const isBasemapVisible = this.mapCanvas
         .getLayers()
         .getArray()[0]
         .get('visible')
@@ -131,7 +132,7 @@ export default {
       this.addLayersListeners()
       const previewRect = document.getElementById('animation-rect')
       const size = [previewRect.offsetWidth, previewRect.offsetHeight]
-      const mapView = this.$mapCanvas.mapObj.getView()
+      const mapView = this.mapCanvas.getView()
       const extent = mapView.calculateExtent(size)
       const rotation = mapView.getRotation()
 
@@ -259,7 +260,7 @@ export default {
           }
         }
       })
-      this.$mapCanvas.mapObj.getLayers().forEach((layer) => {
+      this.mapCanvas.getLayers().forEach((layer) => {
         if (layer instanceof VectorTileLayer) {
           const originalSource = layer.getSource()
           const originalUrl = originalSource.getUrls()[0]
@@ -336,7 +337,7 @@ export default {
       }
     },
     removeLayersListeners() {
-      this.$mapCanvas.mapObj.getLayers().forEach((layer) => {
+      this.mapCanvas.getLayers().forEach((layer) => {
         if (layer instanceof OLImage) {
           const source = layer.getSource()
           source.un('imageloadstart', this.incrementLoadingCount)

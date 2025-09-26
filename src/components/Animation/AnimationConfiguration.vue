@@ -126,7 +126,7 @@
         </template>
       </v-select>
     </v-col>
-    <create-animation />
+    <create-animation :map-canvas="mapCanvas" />
     <export-animation v-if="MP4ExportFlag" />
   </v-card>
 </template>
@@ -136,6 +136,7 @@ import { useI18n } from 'vue-i18n'
 
 export default {
   inject: ['store'],
+  props: ['mapCanvas'],
   mounted() {
     this.emitter.on('setAnimationTitle', this.setAnimationTitle)
   },

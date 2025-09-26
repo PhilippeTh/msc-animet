@@ -20,13 +20,18 @@
             class="mr-1 ml-1 pt-2 pb-1 px-0"
             :class="collapsedControls ? 'hide-controls' : ''"
           >
-            <time-slider :hide="collapsedControls" class="enable-events" />
+            <time-slider
+              :hide="collapsedControls"
+              :map-canvas="mapCanvas"
+              class="enable-events"
+            />
             <interval-locale-selector class="enable-events" />
           </v-row>
           <div>
             <play-pause-controls
               v-if="collapsedControls"
               :hide="collapsedControls"
+              :map-canvas="mapCanvas"
               class="collapsed-play-pause"
             ></play-pause-controls>
             <v-btn
@@ -66,6 +71,7 @@
           <play-pause-controls
             v-if="collapsedControls"
             :hide="collapsedControls"
+            :map-canvas="mapCanvas"
             class="collapsed-play-pause-small"
           ></play-pause-controls>
           <v-col
@@ -115,7 +121,7 @@
         </div>
       </div>
     </div>
-    <error-manager />
+    <error-manager :map-canvas="mapCanvas" />
   </v-card>
 </template>
 
@@ -126,6 +132,7 @@ import datetimeManipulations from '../../mixins/datetimeManipulations'
 
 export default {
   inject: ['store'],
+  props: ['mapCanvas'],
   mixins: [datetimeManipulations],
   data() {
     return {
@@ -257,11 +264,11 @@ export default {
         )
       }
       this.emitter.emit('timeLayerAdded', imageLayer.get('layerName'))
-      this.$mapCanvas.mapObj.addLayer(imageLayer)
+      this.mapCanvas.addLayer(imageLayer)
 
       if (autoPlay || rangeValues) {
         await new Promise((resolve) =>
-          this.$mapCanvas.mapObj.once('rendercomplete', resolve),
+          this.mapCanvas.once('rendercomplete', resolve),
         )
         if (autoPlay) {
           this.emitter.emit('toggleAnimation')
@@ -340,7 +347,7 @@ export default {
       }
       if (noChange) {
         await this.delay(100)
-        this.$mapCanvas.mapObj.updateSize()
+        this.mapCanvas.updateSize()
         if (this.isAnimating && playStateBuffer !== 'play') {
           // Trigger manually because animation creation waits for
           // render events, but noChange means no layers are shown
@@ -494,9 +501,9 @@ export default {
               const globalEndIndex = this.datetimeRangeSlider[1]
 
               // Build URL params
-              const view = this.$mapCanvas.mapObj.getView()
+              const view = this.mapCanvas.getView()
               const extent = view.calculateExtent()
-              const [width, height] = this.$mapCanvas.mapObj.getSize()
+              const [width, height] = this.mapCanvas.getSize()
               const currentStyle = layer.get('layerCurrentStyle')
 
               // Destructured like this to keep exact parameter order for caching

@@ -53,6 +53,7 @@ import { transform } from 'ol/proj.js'
 
 export default {
   inject: ['store'],
+  props: ['mapCanvas'],
   setup() {
     const { isDark } = isDarkTheme()
     return { isDark }
@@ -387,20 +388,20 @@ export default {
             overlayRect.top - 50 < 0 ||
             overlayRect.bottom + 144 > window.innerHeight
           if (isOffScreen) {
-            const currentCenter = this.$mapCanvas.mapObj.getView().getCenter()
+            const currentCenter = this.mapCanvas.getView().getCenter()
             let newCenter = currentCenter
             if (overlayRect.right + 64 > window.innerWidth) {
               const rightPixel =
-                this.$mapCanvas.mapObj.getPixelFromCoordinate(currentCenter)
-              newCenter[0] = this.$mapCanvas.mapObj.getCoordinateFromPixel([
+                this.mapCanvas.getPixelFromCoordinate(currentCenter)
+              newCenter[0] = this.mapCanvas.getCoordinateFromPixel([
                 rightPixel[0] + (overlayRect.right - window.innerWidth) + 64,
                 rightPixel[1],
               ])[0]
             }
             if (overlayRect.bottom + 144 > window.innerHeight) {
               const bottomPixel =
-                this.$mapCanvas.mapObj.getPixelFromCoordinate(currentCenter)
-              newCenter[1] = this.$mapCanvas.mapObj.getCoordinateFromPixel([
+                this.mapCanvas.getPixelFromCoordinate(currentCenter)
+              newCenter[1] = this.mapCanvas.getCoordinateFromPixel([
                 bottomPixel[0],
                 bottomPixel[1] +
                   (overlayRect.bottom + 144 - window.innerHeight),
@@ -408,13 +409,13 @@ export default {
             }
             if (overlayRect.top - 50 < 0) {
               const topPixel =
-                this.$mapCanvas.mapObj.getPixelFromCoordinate(currentCenter)
-              newCenter[1] = this.$mapCanvas.mapObj.getCoordinateFromPixel([
+                this.mapCanvas.getPixelFromCoordinate(currentCenter)
+              newCenter[1] = this.mapCanvas.getCoordinateFromPixel([
                 topPixel[0],
                 topPixel[1] - Math.abs(overlayRect.top) - 50,
               ])[1]
             }
-            const view = this.$mapCanvas.mapObj.getView()
+            const view = this.mapCanvas.getView()
             view.animate({
               center: newCenter,
               duration: 250,
@@ -427,7 +428,7 @@ export default {
       localStorage.setItem('coordinates-preference', newSelection)
     },
     setMapCoordinates(eventCoordinates) {
-      const mapProjection = this.$mapCanvas.mapObj.getView().getProjection()
+      const mapProjection = this.mapCanvas.getView().getProjection()
       this.currentCoordinates = transform(
         eventCoordinates,
         mapProjection,

@@ -36,13 +36,14 @@ import View from 'ol/View.js'
 
 export default {
   inject: ['store'],
+  props: ['mapCanvas'],
   methods: {
     changeProjectionHandler(newProjCode = null) {
       if (!newProjCode) {
         newProjCode = this.currentCRS
       }
 
-      const currentView = this.$mapCanvas.mapObj.getView()
+      const currentView = this.mapCanvas.getView()
       const currentProjection = currentView.getProjection()
       const newProjection = getProjection(newProjCode)
       const fromLonLat = getTransform('EPSG:4326', newProjection)
@@ -78,7 +79,7 @@ export default {
         rotation: currentRotation,
         projection: newProjection,
       })
-      this.$mapCanvas.mapObj.setView(newView)
+      this.mapCanvas.setView(newView)
       this.$mapLayers.arr.forEach((layer) => {
         if (layer.get('layerWmsIndex') === -1) {
           const source = layer.getSource()

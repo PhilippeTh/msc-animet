@@ -65,6 +65,7 @@ import datetimeManipulations from '../../mixins/datetimeManipulations'
 
 export default {
   inject: ['store'],
+  props: ['mapCanvas'],
   mixins: [datetimeManipulations],
   mounted() {
     this.emitter.on('cancelAnimationResize', this.onCancelAnimationResize)
@@ -102,7 +103,7 @@ export default {
         !(this.datetimeRangeSlider[0] === this.datetimeRangeSlider[1])
       ) {
         await new Promise((resolve) =>
-          this.$mapCanvas.mapObj.once('rendercomplete', resolve),
+          this.mapCanvas.once('rendercomplete', resolve),
         )
       }
       if (!this.blockRefreshError && !this.blockRefreshAnimation) {

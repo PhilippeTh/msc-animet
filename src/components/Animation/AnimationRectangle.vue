@@ -11,6 +11,7 @@ import OLImage from 'ol/layer/Image'
 
 export default {
   inject: ['store'],
+  props: ['mapCanvas'],
   data() {
     return {
       t: useI18n().t,
@@ -121,9 +122,7 @@ export default {
         }
         let animetOffset = 0
         if (isLayerListShown) {
-          if (
-            !this.$mapCanvas.mapObj.getLayers().getArray()[0].get('visible')
-          ) {
+          if (!this.mapCanvas.getLayers().getArray()[0].get('visible')) {
             if (mapWidth < 1080) {
               animetOffset = 21
             } else {
@@ -158,9 +157,7 @@ export default {
           }
           ctx_h = ctx_h >= minHeight ? ctx_h : minHeight
         } else if (!isLayerListShown) {
-          if (
-            !this.$mapCanvas.mapObj.getLayers().getArray()[0].get('visible')
-          ) {
+          if (!this.mapCanvas.getLayers().getArray()[0].get('visible')) {
             ctx_h = 24
           }
           if (numModelRuns === 0) {

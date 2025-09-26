@@ -44,17 +44,18 @@
 <script>
 export default {
   inject: ['store'],
+  props: ['mapCanvas'],
   methods: {
     zoomIn() {
-      let currentZoom = this.$mapCanvas.mapObj.getView().getZoom()
+      let currentZoom = this.mapCanvas.getView().getZoom()
       if (currentZoom < 20) {
-        this.$mapCanvas.mapObj.getView().setZoom(currentZoom + 0.1)
+        this.mapCanvas.getView().setZoom(currentZoom + 0.1)
       }
     },
     zoomOut() {
-      let currentZoom = this.$mapCanvas.mapObj.getView().getZoom()
+      let currentZoom = this.mapCanvas.getView().getZoom()
       if (currentZoom > 1) {
-        this.$mapCanvas.mapObj.getView().setZoom(currentZoom - 0.1)
+        this.mapCanvas.getView().setZoom(currentZoom - 0.1)
       }
     },
   },

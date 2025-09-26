@@ -1,7 +1,7 @@
 <template>
   <div class="Home">
     <v-container fluid>
-      <map-canvas id="mapComponent" />
+      <map-canvas id="mapComponent" :map-canvas="map" />
     </v-container>
   </div>
 </template>
@@ -11,6 +11,7 @@ import localeData from '../locales/importLocaleFiles'
 import proj4 from 'proj4'
 import { Duration } from 'luxon'
 import { register } from 'ol/proj/proj4'
+import Map from 'ol/Map'
 
 export default {
   inject: ['store'],
@@ -31,6 +32,9 @@ export default {
       allPropsUndefined: false,
       layerCount: null,
       layerSnapped: false,
+      map: new Map({
+        pixelRatio: 1,
+      }),
       userCRS: undefined,
     }
   },

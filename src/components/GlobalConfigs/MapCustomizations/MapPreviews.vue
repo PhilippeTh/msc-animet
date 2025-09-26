@@ -51,6 +51,7 @@ import View from 'ol/View'
 
 export default {
   inject: ['store'],
+  props: ['mapCanvas'],
   data() {
     return {
       backgroundColor: null,
@@ -297,7 +298,7 @@ export default {
         }
       },
     },
-    '$mapCanvas.mapObj': {
+    mapCanvas: {
       handler(newVal, oldVal) {
         if (
           Object.keys(oldVal).length === 0 &&
@@ -389,7 +390,7 @@ export default {
       })
     },
     coloredBasemapHandler(flag) {
-      if (!this.$mapCanvas.mapObj.getLayers().getArray()[0].get('visible')) {
+      if (!this.mapCanvas.getLayers().getArray()[0].get('visible')) {
         this.whiteBasemapHandler(true)
       }
       this.isMapColored = flag
@@ -397,26 +398,26 @@ export default {
         this.darkOSMCallback = (evt) => {
           this.createColoredBasemapCallback(this.rgb, evt)
         }
-        this.$mapCanvas.mapObj
+        this.mapCanvas
           .getLayers()
           .getArray()[0]
           .on('postrender', this.darkOSMCallback)
-        this.$mapCanvas.mapObj.updateSize()
+        this.mapCanvas.updateSize()
       }
       if (flag === true) {
-        this.$mapCanvas.mapObj
+        this.mapCanvas
           .getLayers()
           .getArray()[0]
           .on('postrender', this.darkOSMCallback)
-        this.$mapCanvas.mapObj.updateSize()
+        this.mapCanvas.updateSize()
       } else if (flag === false) {
-        this.$mapCanvas.mapObj
+        this.mapCanvas
           .getLayers()
           .getArray()[0]
           .un('postrender', this.darkOSMCallback)
-        this.$mapCanvas.mapObj.updateSize()
+        this.mapCanvas.updateSize()
       }
-      this.$mapCanvas.mapObj.renderSync()
+      this.mapCanvas.renderSync()
 
       this.store.setRGB(this.isMapColored ? this.rgb : [])
       this.emitter.emit('updatePermalink')
@@ -622,7 +623,7 @@ export default {
         // Needs to be double checked against the map's zoom level or it won't work on 4326
         const zoom_resolution =
           Math.log2(156543.03390625) - Math.log2(resolution)
-        const zoom = this_.$mapCanvas.mapObj.getView().getZoom()
+        const zoom = this_.mapCanvas.getView().getZoom()
 
         if (zoom_resolution < minZoom || zoom < minZoom) {
           return null
@@ -819,20 +820,20 @@ export default {
       }
     },
     toggleVectorLayer(colors, source, colorName, displayCondition = undefined) {
-      const layer = this.$mapCanvas.mapObj
+      const layer = this.mapCanvas
         .getLayers()
         .getArray()
         .find((l) => l.get('layerName') === `${source}-${colorName}`)
       if (!layer) {
-        this.$mapCanvas.mapObj.addLayer(
+        this.mapCanvas.addLayer(
           this.createVectorLayer(colors, source, colorName, displayCondition),
         )
       } else {
-        this.$mapCanvas.mapObj.removeLayer(layer)
+        this.mapCanvas.removeLayer(layer)
       }
     },
     toggleVectorLayerStyle(colors, source, oldColorName, newColorName, zIndex) {
-      const layer = this.$mapCanvas.mapObj
+      const layer = this.mapCanvas
         .getLayers()
         .getArray()
         .find((l) => l.get('layerName') === `${source}-${oldColorName}`)
@@ -1078,10 +1079,10 @@ export default {
         this.updateMap(map)
       })
 
-      this.updateMap(this.$mapCanvas.mapObj)
+      this.updateMap(this.mapCanvas)
     },
     whiteBasemapHandler(visible, background = null) {
-      const basemap = this.$mapCanvas.mapObj.getLayers().getArray()[0]
+      const basemap = this.mapCanvas.getLayers().getArray()[0]
       basemap.setVisible(visible)
       if (background) {
         if (!this.backgroundColor) {

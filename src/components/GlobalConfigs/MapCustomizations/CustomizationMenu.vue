@@ -18,7 +18,7 @@
         </v-tooltip>
       </template>
       <v-container @click.stop :class="getCurrentTheme" class="menu-container">
-        <projection-handler />
+        <projection-handler :map-canvas="mapCanvas" />
         <v-switch
           v-model="graticules"
           :label="$t('ShowGraticules')"
@@ -27,7 +27,7 @@
           hide-details
           class="mt-0 grat"
         ></v-switch>
-        <map-previews></map-previews>
+        <map-previews :map-canvas="mapCanvas"></map-previews>
       </v-container>
     </v-menu>
   </div>
@@ -38,6 +38,7 @@ import { isDarkTheme } from '@/components/Composables/isDarkTheme'
 
 export default {
   inject: ['store'],
+  props: ['mapCanvas'],
   setup() {
     const { isDark } = isDarkTheme()
     return { isDark }

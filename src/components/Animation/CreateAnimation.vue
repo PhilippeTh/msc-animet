@@ -63,6 +63,7 @@ import datetimeManipulations from '../../mixins/datetimeManipulations'
 
 export default {
   inject: ['store'],
+  props: ['mapCanvas'],
   mounted() {
     this.emitter.on('redoAnimation', this.redoAnimation)
     this.emitter.on('restoreState', this.restoreState)
@@ -171,15 +172,13 @@ export default {
       this.store.setImgURL(null)
       this.store.setIsAnimating(true)
       this.generating = true
-      this.$mapCanvas.mapObj.updateSize()
+      this.mapCanvas.updateSize()
 
       let visibleLayers = this.$mapLayers.arr.filter((l) => {
         return l.get('layerVisibilityOn') && l instanceof OLImage
       })
 
-      this.$mapCanvas.mapObj
-        .getInteractions()
-        .forEach((x) => x.setActive(false))
+      this.mapCanvas.getInteractions().forEach((x) => x.setActive(false))
       this.setMapHeight()
       this.setMapWidth()
       const widths = this.getTimeTitleWidths()
@@ -283,7 +282,7 @@ export default {
                   abortListener,
                 )
 
-                this.$mapCanvas.mapObj.once('rendercomplete', resolve)
+                this.mapCanvas.once('rendercomplete', resolve)
                 this.emitter.on('noChange', resolve)
               }).catch(() => {
                 console.error('Animation creation cancelled')
@@ -389,13 +388,13 @@ export default {
       }
       this.encoder.delete()
 
-      this.$mapCanvas.mapObj.getInteractions().forEach((x) => x.setActive(true)) // Enables all map interactions such as drag or zoom
+      this.mapCanvas.getInteractions().forEach((x) => x.setActive(true)) // Enables all map interactions such as drag or zoom
       let theMap = document.getElementById('map')
       theMap.style.height = '100%'
       theMap.style.width = '100%'
     },
     async composeCanvas(date, encoder) {
-      this.$mapCanvas.mapObj.updateSize()
+      this.mapCanvas.updateSize()
       this.$animationCanvas.mapObj.updateSize()
       const mapCnv = this.getMapCanvas()
       this.activeLegends.forEach((layerName) => {
@@ -594,7 +593,7 @@ export default {
       mapCanvas.width = this.mapWidth //size[0]
       mapCanvas.height = this.mapHeight //size[1]
       let mapContext = mapCanvas.getContext('2d')
-      if (this.$mapCanvas.mapObj.getLayers().getArray()[0].get('visible')) {
+      if (this.mapCanvas.getLayers().getArray()[0].get('visible')) {
         mapContext.fillStyle = 'white'
       } else {
         mapContext.fillStyle =
@@ -817,9 +816,7 @@ export default {
       if (!this.isLayerListShown) {
         animetPlacement = 0.01 * infoCanvas.height
         osmPlacement = 20
-      } else if (
-        !this.$mapCanvas.mapObj.getLayers().getArray()[0].get('visible')
-      ) {
+      } else if (!this.mapCanvas.getLayers().getArray()[0].get('visible')) {
         if (this.mapWidth < 1080) {
           animetOffset = 21
         } else {
@@ -857,7 +854,7 @@ export default {
         animetPlacement = ctx_h
         osmPlacement = ctx_h
       } else if (!this.isLayerListShown) {
-        if (!this.$mapCanvas.mapObj.getLayers().getArray()[0].get('visible')) {
+        if (!this.mapCanvas.getLayers().getArray()[0].get('visible')) {
           ctx_h = 24
         }
         if (numModelRuns === 0) {
@@ -968,7 +965,7 @@ export default {
         }
       }
 
-      if (this.$mapCanvas.mapObj.getLayers().getArray()[0].get('visible')) {
+      if (this.mapCanvas.getLayers().getArray()[0].get('visible')) {
         // © OpenStreetMap contributors
         let OSMAttr = this.t('AttributionOSM')
         canvasTxt.fontSize = 10

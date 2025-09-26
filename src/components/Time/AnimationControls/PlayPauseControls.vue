@@ -35,6 +35,7 @@ export default {
   inject: ['store'],
   props: {
     hide: Boolean,
+    mapCanvas: Object,
   },
   mounted() {
     if (this.playState === 'play') {
@@ -187,7 +188,7 @@ export default {
           r = await this.measurePromise(
             () =>
               new Promise((resolve) =>
-                this.$mapCanvas.mapObj.once('rendercomplete', resolve),
+                this.mapCanvas.once('rendercomplete', resolve),
               ),
           )
         }

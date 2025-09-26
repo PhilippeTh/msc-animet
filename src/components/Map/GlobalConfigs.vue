@@ -11,7 +11,7 @@
         class="d-flex pa-0 pt-2 justify-center align-center"
       >
         <v-spacer v-if="mdAndUp"></v-spacer>
-        <customization-menu class="mr-3" />
+        <customization-menu class="mr-3" :map-canvas="mapCanvas" />
         <page-theme class="mr-3" />
         <language-select class="mr-3" />
         <perma-link class="mr-3" />
@@ -36,6 +36,7 @@
 
 <script setup>
 import { useDisplay } from 'vuetify'
+const props = defineProps(['mapCanvas'])
 
 const { mdAndUp } = useDisplay()
 </script>

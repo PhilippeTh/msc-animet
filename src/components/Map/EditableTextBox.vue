@@ -27,7 +27,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { getCurrentInstance } from 'vue'
 
-const props = defineProps(['id', 'coord'])
+const props = defineProps(['id', 'coord', 'mapCanvas'])
 const { proxy } = getCurrentInstance()
 const element = ref(null)
 
@@ -72,9 +72,7 @@ const handlePaste = (evt) => {
 }
 
 const initialPosStyle = () => {
-  const pixelPosition = proxy.$mapCanvas.mapObj.getPixelFromCoordinate(
-    props.coord,
-  )
+  const pixelPosition = props.mapCanvas.getPixelFromCoordinate(props.coord)
   return {
     top: `${pixelPosition[1]}px`,
     left: `${pixelPosition[0]}px`,

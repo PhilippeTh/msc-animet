@@ -6,12 +6,15 @@
       @click="exitFullscreenOnClick"
       class="full-size"
     />
-    <animation-canvas v-if="isAnimating && playState !== 'play'" />
+    <animation-canvas
+      v-if="isAnimating && playState !== 'play'"
+      :map-canvas="mapCanvas"
+    />
     <div ref="map" class="map" id="map" :disabled="isAnimating">
-      <animation-rectangle />
-      <o-l-controls />
-      <global-configs />
-      <side-panel id="side_panel" />
+      <animation-rectangle :map-canvas="mapCanvas" />
+      <o-l-controls :map-canvas="mapCanvas" />
+      <global-configs :map-canvas="mapCanvas" />
+      <side-panel id="side_panel" :map-canvas="mapCanvas" />
       <div id="legendMapOverlay">
         <legend-controls
           v-for="name in activeLegends"
@@ -27,12 +30,13 @@
           :key="textBox.id"
           :id="textBox.id"
           :coord="textBox.coord"
+          :map-canvas="mapCanvas"
         />
       </div>
-      <time-controls />
+      <time-controls :map-canvas="mapCanvas" />
     </div>
     <loading-bar :loading="loading > 0" />
-    <get-feature-info />
+    <get-feature-info :map-canvas="mapCanvas" />
     <span
       color="primary"
       id="animet_version"
@@ -61,7 +65,6 @@ import Graticule from 'ol/layer/Graticule.js'
 import IGC from 'ol/format/IGC.js'
 import ImageWMS from 'ol/source/ImageWMS'
 import KML from 'ol/format/KML.js'
-import Map from 'ol/Map'
 import OLImage from 'ol/layer/Image'
 import OSM from 'ol/source/OSM'
 import Rotate from 'ol/control/Rotate.js'
@@ -85,6 +88,7 @@ import { version } from '../../../package.json'
 
 export default {
   inject: ['store'],
+  props: ['mapCanvas'],
   mixins: [datetimeManipulations],
   mounted() {
     this.emitter.on('buildLayer', this.buildLayer)
@@ -116,18 +120,31 @@ export default {
     const projExtent = applyTransform(worldExtent, fromLonLat, undefined, 8)
     newProjection.setExtent(projExtent)
 
-    this.$mapCanvas.mapObj = new Map({
-      target: this.$refs['map'],
-      layers: [this.osm, this.graticule],
-      view: new View({
+    this.mapCanvas.setTarget(this.$refs['map'])
+    this.mapCanvas.addLayer(this.osm)
+    this.mapCanvas.addLayer(this.graticule)
+    this.mapCanvas.setView(
+      new View({
         center: fromLonLat([-90, 55]),
         zoom: 4,
         maxZoom: 12,
         projection: this.currentCRS,
       }),
-      pixelRatio: 1,
-      controls: [scaleControl],
-    })
+    )
+    this.mapCanvas.addControl(scaleControl)
+
+    // this.mapCanvas = new Map({
+    //   target: this.$refs['map'],
+    //   layers: [this.osm, this.graticule],
+    //   view: new View({
+    //     center: fromLonLat([-90, 55]),
+    //     zoom: 4,
+    //     maxZoom: 12,
+    //     projection: this.currentCRS,
+    //   }),
+    //   pixelRatio: 1,
+    //   controls: [scaleControl],
+    // })
 
     let dragAndDropInteraction = new DragAndDrop({
       formatConstructors: [
@@ -160,10 +177,10 @@ export default {
         legendColor: null,
       })
       this.setLayerZIndex(vectorLayer)
-      this.$mapCanvas.mapObj.addLayer(vectorLayer)
-      this.$mapCanvas.mapObj.getView().fit(vectorSource.getExtent())
+      this.mapCanvas.addLayer(vectorLayer)
+      this.mapCanvas.getView().fit(vectorSource.getExtent())
     })
-    this.$mapCanvas.mapObj.addInteraction(dragAndDropInteraction)
+    this.mapCanvas.addInteraction(dragAndDropInteraction)
 
     const attribution = new Attribution()
     const legendMapOverlay = new Control({
@@ -209,7 +226,7 @@ export default {
     })
 
     const { addArrow, addBox, addCircle, addPolygon, selectedFeature } =
-      useVectorShapes(this.$mapCanvas.mapObj)
+      useVectorShapes(this.mapCanvas)
     this.selectedFeature = selectedFeature
     this.addArrowFunction = addArrow
     this.addBoxFunction = addBox
@@ -228,49 +245,47 @@ export default {
       this.contextMenuOpen = false
     })
 
-    this.$mapCanvas.mapObj.addControl(animationRect)
-    this.$mapCanvas.mapObj.addControl(animetVersion)
-    this.$mapCanvas.mapObj.addControl(attribution)
-    this.$mapCanvas.mapObj.addControl(this.contextMenu)
-    this.$mapCanvas.mapObj.addControl(globalConfigs)
-    this.$mapCanvas.mapObj.addControl(legendMapOverlay)
-    this.$mapCanvas.mapObj.addControl(sidePanel)
-    this.$mapCanvas.mapObj.addControl(textBoxOverlay)
-    this.$mapCanvas.mapObj.addControl(timeControls)
-    this.$mapCanvas.mapObj.addControl(timeSnackbar)
-    this.$mapCanvas.mapObj.addControl(zoomMinus)
-    this.$mapCanvas.mapObj.addControl(zoomPlus)
+    this.mapCanvas.addControl(animationRect)
+    this.mapCanvas.addControl(animetVersion)
+    this.mapCanvas.addControl(attribution)
+    this.mapCanvas.addControl(this.contextMenu)
+    this.mapCanvas.addControl(globalConfigs)
+    this.mapCanvas.addControl(legendMapOverlay)
+    this.mapCanvas.addControl(sidePanel)
+    this.mapCanvas.addControl(textBoxOverlay)
+    this.mapCanvas.addControl(timeControls)
+    this.mapCanvas.addControl(timeSnackbar)
+    this.mapCanvas.addControl(zoomMinus)
+    this.mapCanvas.addControl(zoomPlus)
 
-    this.$mapCanvas.mapObj.addControl(this.rotateArrow)
+    this.mapCanvas.addControl(this.rotateArrow)
 
-    this.$mapCanvas.mapObj.addOverlay(popupGFI)
+    this.mapCanvas.addOverlay(popupGFI)
 
-    this.$mapCanvas.mapObj.on('moveend', () => {
-      const view = this.$mapCanvas.mapObj.getView()
-      const extent = view.calculateExtent(this.$mapCanvas.mapObj.getSize())
+    this.mapCanvas.on('moveend', () => {
+      const view = this.mapCanvas.getView()
+      const extent = view.calculateExtent(this.mapCanvas.getSize())
       const rotation = view.getRotation()
       this.store.setExtent([extent, rotation])
       this.emitter.emit('updatePermalink')
     })
 
-    this.$mapCanvas.mapObj.on('singleclick', (evt) => {
+    this.mapCanvas.on('singleclick', (evt) => {
       this.selectedLegendLayerName = null
       if (!this.selectedFeature && !this.contextMenuOpen) {
         this.emitter.emit('onMapClicked', { event: evt, overlay: popupGFI })
       }
     })
-    this.$mapCanvas.mapObj
-      .getViewport()
-      .addEventListener('pointerdown', (evt) => {
-        if (evt.target.tagName === 'CANVAS' || evt.target.tagName === 'IMG') {
-          this.emitter.emit('changeTab')
-        }
-      })
-    this.$mapCanvas.mapObj.on('movestart', (evt) => {
+    this.mapCanvas.getViewport().addEventListener('pointerdown', (evt) => {
+      if (evt.target.tagName === 'CANVAS' || evt.target.tagName === 'IMG') {
+        this.emitter.emit('changeTab')
+      }
+    })
+    this.mapCanvas.on('movestart', (evt) => {
       this.emitter.emit('changeTab')
     })
     new ResizeObserver(() => {
-      this.$mapCanvas.mapObj.updateSize()
+      this.mapCanvas.updateSize()
     }).observe(this.$refs.map)
   },
   beforeUnmount() {
@@ -317,7 +332,7 @@ export default {
         rotation = locExtent.pop()
       }
 
-      const currentView = this.$mapCanvas.mapObj.getView()
+      const currentView = this.mapCanvas.getView()
 
       if (rotation !== 0) {
         const centerX = (locExtent[0] + locExtent[2]) / 2
@@ -345,11 +360,11 @@ export default {
         // First set rotation to 0, fit to unrotated extent, then apply rotation
         currentView.setRotation(0)
         currentView.fit(unrotatedExtent, {
-          size: this.$mapCanvas.mapObj.getSize(),
+          size: this.mapCanvas.getSize(),
         })
         currentView.setRotation(rotation)
       } else {
-        currentView.fit(locExtent, { size: this.$mapCanvas.mapObj.getSize() })
+        currentView.fit(locExtent, { size: this.mapCanvas.getSize() })
       }
     },
     onKeyDown(event) {
@@ -358,9 +373,9 @@ export default {
       }
     },
     onLocaleChange() {
-      this.$mapCanvas.mapObj.removeControl(this.rotateArrow)
+      this.mapCanvas.removeControl(this.rotateArrow)
       this.rotateArrow = new Rotate({ tipLabel: this.t('ResetRotation') })
-      this.$mapCanvas.mapObj.addControl(this.rotateArrow)
+      this.mapCanvas.addControl(this.rotateArrow)
       this.updateContextMenu()
     },
     async removeLayerHandler(removedLayer) {
@@ -369,7 +384,7 @@ export default {
       }
       let layerFound = false
       if (
-        this.$mapCanvas.mapObj
+        this.mapCanvas
           .getLayers()
           .getArray()
           .find(
@@ -377,7 +392,7 @@ export default {
           ) !== undefined
       ) {
         layerFound = true
-        this.$mapCanvas.mapObj.removeLayer(removedLayer)
+        this.mapCanvas.removeLayer(removedLayer)
       }
 
       this.$mapLayers.arr = this.$mapLayers.arr.filter(
@@ -524,10 +539,10 @@ export default {
           rangeValues,
         })
       } else {
-        this.$mapCanvas.mapObj.addLayer(imageLayer)
+        this.mapCanvas.addLayer(imageLayer)
         if (autoPlay || rangeValues) {
           await new Promise((resolve) =>
-            this.$mapCanvas.mapObj.once('rendercomplete', resolve),
+            this.mapCanvas.once('rendercomplete', resolve),
           )
           if (autoPlay) {
             this.emitter.emit('toggleAnimation')
@@ -707,10 +722,10 @@ export default {
       ]
     },
     mapHeight() {
-      return this.$mapCanvas.mapObj.getSize()[1]
+      return this.mapCanvas.getSize()[1]
     },
     mapWidth() {
-      return this.$mapCanvas.mapObj.getSize()[0]
+      return this.mapCanvas.getSize()[0]
     },
     timeStep() {
       return this.mapTimeSettings.Step

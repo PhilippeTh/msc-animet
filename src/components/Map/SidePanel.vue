@@ -90,6 +90,7 @@
           </v-tabs-window-item>
           <v-tabs-window-item eager>
             <animation-configuration
+              :map-canvas="mapCanvas"
               id="animation-configuration"
               v-show="$mapLayers.arr.length !== 0"
             />
@@ -104,6 +105,7 @@
 export default {
   name: 'SidePanel',
   inject: ['store'],
+  props: ['mapCanvas'],
   mounted() {
     this.emitter.on('changeTab', this.onChangeTab)
     this.emitter.on('collapseMenu', this.onCollapseMenu)

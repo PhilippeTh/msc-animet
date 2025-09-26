@@ -25,6 +25,7 @@
     <v-row>
       <play-pause-controls
         v-if="!hide"
+        :map-canvas="mapCanvas"
         class="play-pause"
       ></play-pause-controls>
       <v-col class="pl-0">
@@ -76,6 +77,7 @@ import datetimeManipulations from '../../mixins/datetimeManipulations'
 
 export default {
   inject: ['store'],
+  props: ['mapCanvas'],
   props: {
     hide: Boolean,
   },
