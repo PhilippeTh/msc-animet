@@ -299,9 +299,10 @@ export default {
       },
     },
     mapCanvas: {
+      immediate: true,
       handler(newVal, oldVal) {
         if (
-          Object.keys(oldVal).length === 0 &&
+          !oldVal &&
           Object.keys(newVal).length !== 0 &&
           this.activeBasemap === 'OSM'
         ) {
@@ -417,7 +418,7 @@ export default {
           .un('postrender', this.darkOSMCallback)
         this.mapCanvas.updateSize()
       }
-      this.mapCanvas.renderSync()
+      // this.mapCanvas.renderSync()
 
       this.store.setRGB(this.isMapColored ? this.rgb : [])
       this.emitter.emit('updatePermalink')

@@ -66,10 +66,8 @@ import IGC from 'ol/format/IGC.js'
 import ImageWMS from 'ol/source/ImageWMS'
 import KML from 'ol/format/KML.js'
 import OLImage from 'ol/layer/Image'
-import OSM from 'ol/source/OSM'
 import Rotate from 'ol/control/Rotate.js'
 import Stroke from 'ol/style/Stroke.js'
-import TileLayer from 'ol/layer/Tile'
 import TopoJSON from 'ol/format/TopoJSON.js'
 import VectorLayer from 'ol/layer/Vector.js'
 import VectorSource from 'ol/source/Vector.js'
@@ -121,7 +119,7 @@ export default {
     newProjection.setExtent(projExtent)
 
     this.mapCanvas.setTarget(this.$refs['map'])
-    this.mapCanvas.addLayer(this.osm)
+    // this.mapCanvas.addLayer(this.osm)
     this.mapCanvas.addLayer(this.graticule)
     this.mapCanvas.setView(
       new View({
@@ -815,7 +813,7 @@ export default {
       v: 0.75,
       graticule: null,
       loading: 0,
-      osm: new TileLayer({ source: new OSM() }),
+      // osm: new TileLayer({ source: new OSM() }),
       rotateArrow: null,
       selectedLegendLayerName: null,
       t: useI18n().t,

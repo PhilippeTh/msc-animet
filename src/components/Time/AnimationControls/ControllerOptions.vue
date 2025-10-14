@@ -79,7 +79,6 @@
 
 <script setup>
 import { computed, inject, onMounted, nextTick } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { isDarkTheme } from '@/components/Composables/isDarkTheme'
 
 const props = defineProps({
@@ -90,7 +89,6 @@ const emit = defineEmits(['action-clicked'])
 
 const store = inject('store')
 const { isDark } = isDarkTheme()
-const { t } = useI18n()
 
 const isAnimating = computed(() => store.getIsAnimating)
 const isLooping = computed(() => store.getIsLooping)

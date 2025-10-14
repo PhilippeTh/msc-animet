@@ -12,6 +12,8 @@ import proj4 from 'proj4'
 import { Duration } from 'luxon'
 import { register } from 'ol/proj/proj4'
 import Map from 'ol/Map'
+import OSM from 'ol/source/OSM'
+import TileLayer from 'ol/layer/Tile'
 
 export default {
   inject: ['store'],
@@ -33,6 +35,7 @@ export default {
       layerCount: null,
       layerSnapped: false,
       map: new Map({
+        layers: [new TileLayer({ source: new OSM() })],
         pixelRatio: 1,
       }),
       userCRS: undefined,
